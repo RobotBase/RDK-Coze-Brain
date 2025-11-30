@@ -1,6 +1,10 @@
 # 🤖 地瓜机器人 x 扣子：RDK 部署 Coze Studio 实战指南
 
+![RDK Coze Banner](doc/RDK_Coze_Banner.png)
+
 **适用硬件**：地瓜机器人 RDK 系列（RDK X3 / X3 Module / RDK X5 / RDK S100）  
+
+![Coze Logo](doc/logo_coze.PNG) ![RDK Logo](doc/logo_rdk.png)
 
 -----
 
@@ -124,6 +128,8 @@ sudo docker compose -f docker-compose.yml up -d
 
 此时你会看到终端显示正在 `Pulling`（下载）各种镜像，请耐心等待下载完成。
 
+![Pulling Images](doc/pull_image.png)
+
 -----
 
 ## 第四步：注册账号与配置模型
@@ -143,6 +149,8 @@ sudo docker compose -f docker-compose.yml up -d
 
 3. **开始使用**：
     配置完成后，访问 Coze Studio 主页 `http://localhost:8888/` 即可开始创建 Agent！🚀
+
+![Successful Deployment](doc/success_depoly.png)
 
 -----
 

@@ -1,6 +1,10 @@
 # 🤖 Sweet Potato Robot x Coze: RDK Deployment Coze Studio Practical Guide
 
-**Compatible Hardware**: Sweet Potato Robot RDK Series (RDK X3 / X3 Module / RDK X5 / RDK S100)
+![RDK Coze Banner](doc/RDK_Coze_Banner.png)
+
+**Compatible Hardware**: Sweet Potato Robot RDK Series (RDK X3 / X3 Module / RDK X5 / RDK S100)  
+
+![Coze Logo](doc/logo_coze.PNG) ![RDK Logo](doc/logo_rdk.png)
 
 -----
 
@@ -130,6 +134,8 @@ sudo docker compose -f docker-compose.yml up -d
 
 At this point, you will see the terminal displaying `Pulling` (downloading) various images. Please wait patiently for the download to complete.
 
+![Pulling Images](doc/pull_image.png)
+
 -----
 
 ## Step 4: Register Account and Configure Model
@@ -149,6 +155,8 @@ After all containers show `Started`, we will proceed with subsequent configurati
 
 3. **Start Using**:
    After configuration is complete, visit the Coze Studio homepage `http://localhost:8888/` to start creating Agents! 🚀
+
+![Successful Deployment](doc/success_depoly.png)
 
 -----
 
