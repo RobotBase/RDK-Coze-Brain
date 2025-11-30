@@ -1,142 +1,240 @@
-# 🤖 地瓜机器人 x 扣子：RDK 部署 Coze Studio 实战指南
+# 🤖 Sweet Potato Robot x Coze: RDK Deployment Coze Studio Practical Guide
 
-**适用硬件**：地瓜机器人 RDK 系列（RDK X3 / X3 Module / RDK X5 / RDK S100）  
+**Compatible Hardware**: Sweet Potato Robot RDK Series (RDK X3 / X3 Module / RDK X5 / RDK S100)
 
 -----
 
-## 第一步：配置 Docker 环境（最关键的一步）
+## Step 1: Configure Docker Environment (The Most Critical Step)
 
-由于 RDK 运行在 ARM 架构的 Ubuntu 系统上，且国内网络环境特殊，直接安装 Docker 容易遇到 `iptables` 兼容性问题或镜像拉取失败。请严格按照以下步骤操作：
+Since RDK runs on an ARM architecture Ubuntu system, and due to China's special network environment, installing Docker directly can easily encounter `iptables` compatibility issues or image pull failures. Please follow these steps strictly:
 
-### 1\. 清理旧版本与冲突包
+### 1. Clean Up Old Versions and Conflicting Packages
 
-为了防止环境冲突，首先清理系统可能存在的旧版本 Docker 或冲突组件。
+To prevent environment conflicts, first clean up any existing old versions of Docker or conflicting components in the system.
 
+```bash
 sudo apt remove --purge containerd.io containerd docker-ce docker.io
 sudo apt autoremove
 sudo rm -rf /var/lib/docker /var/lib/containerd /etc/docker
+```
 
-### 2\. 安装 Docker
+### 2. Install Docker
 
-推荐使用 Ubuntu 官方源进行安装，稳定性更好。
+It is recommended to use the Ubuntu official repository for installation, which offers better stability.
 
+```bash
 sudo apt update
 sudo apt install docker.io
+```
 
-### 3\. 解决 iptables 兼容性并配置国内镜像源
+### 3. Resolve iptables Compatibility and Configure Domestic Mirror Sources
 
-这是一个**必做**的步骤。RDK 系统通常使用 `nftables`，而 Docker 默认依赖 `iptables-legacy`，会导致启动报错。同时，我们需要配置镜像源以加速下载。
+This is a **mandatory** step. RDK systems typically use `nftables`, while Docker defaults to `iptables-legacy`, which will cause startup errors. At the same time, we need to configure mirror sources to accelerate downloads.
 
-请直接执行以下命令，创建配置文件：
+Please execute the following command directly to create the configuration file:
 
+```bash
 sudo mkdir -p /etc/docker
 sudo tee /etc/docker/daemon.json > /dev/null <<EOF
 {
     "iptables": false,
     "registry-mirrors": [
-        "https://dockerproxy.com",
+        "https://docker.1panel.live/",
+        "https://docker.1ms.run",
+        "https://docker.xuanyuan.me",
+        "https://docker.xpg666.xyz/",
+        "https://dytt.online",
+        "https://lispy.org",
+        "https://docker.xiaogenban1993.com",
+        "https://docker-0.unsee.tech",
+        "https://666860.xyz",
         "https://docker.m.daocloud.io",
-        "https://hub-mirror.c.163.com",
-        "https://mirror.baidubce.com",
         "https://docker.nju.edu.cn",
-        "https://registry.docker-cn.com"
+        "https://hub.rat.dev"
     ]
 }
 EOF
+```
 
-> **配置说明**：
+> **Configuration Notes**:
 >
-> * `"iptables": false`：解决了 `Could not fetch rule set generation id` 的报错。
-> * `"registry-mirrors"`：使用了国内常用的 Docker 镜像加速地址，解决下载卡顿问题。
+> * `"iptables": false`: Resolves the `Could not fetch rule set generation id` error.
+> * `"registry-mirrors"`: Uses commonly used domestic Docker image acceleration addresses to solve download lag issues.
 
-### 4\. 重启 Docker 并验证
+### 4. Restart Docker and Verify
 
-应用配置并检查是否安装成功。
+Apply the configuration and check if the installation was successful.
 
+```bash
 sudo systemctl daemon-reload
 sudo systemctl restart docker
-sudo docker version  # 应该能看到 Client 和 Server 版本信息
+sudo docker version  # Should be able to see Client and Server version information
+```
 
-### 5\. 安装 Docker Compose
+### 5. Install Docker Compose
 
-Coze Studio 需要通过 Docker Compose 启动。
+Coze Studio needs to be started via Docker Compose.
 
+```bash
 sudo apt install docker-compose-plugin
-docker compose version  # 验证安装是否成功
+docker compose version  # Verify successful installation
+```
 
 -----
 
-## 第二步：下载 Coze Studio 项目代码
+## Step 2: Download Coze Studio Project Code
 
-环境准备好后，我们将 Coze Studio 的代码克隆到本地。
+After preparing the environment, we will clone the Coze Studio code to the local machine.
 
-# 回到用户主目录
+Return to the user home directory
 
+```bash
 cd ~
+```
 
-# 克隆代码仓库
+Clone the code repository
 
-git clone <https://github.com/coze-dev/coze-studio>
-
------
-
-## 第三步：配置大模型（接入豆包 1.6）
-
-Coze Studio 只是一个平台，正式启动前，我们必须为它配置“大脑”（大模型）。这里我们以**火山引擎的豆包模型（Doubao-1.6）**为例。
-
-### 1\. 准备配置文件
-
-进入项目目录，复制一份模板文件：
-
-cd coze-studio
-cp backend/conf/model/template/model_template_ark_doubao-seed-1.6.yaml backend/conf/model/ark_doubao-seed-1.6.yaml
-
-### 2\. 获取 API Key 和 Endpoint ID
-
-你需要前往火山引擎控制台获取以下两个关键信息：
-
-* **API Key**: [点击这里创建/查看](https://www.volcengine.com/docs/82379/1541594)
-* **Endpoint ID (推理接入点)**: [点击这里创建](https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint/create?customModelId=)
-  * *注意：创建接入点后，页面红框里显示的字符才是你的 Endpoint ID。*
-
-### 3\. 修改配置文件
-
-使用编辑器（如 vim 或 nano）修改 `backend/conf/model/ark_doubao-seed-1.6.yaml`，仅需修改以下 3 个参数：
-
-id: 123                          # 必须是非 0 整数，全局唯一即可
-meta:
-  conn_config:
-    api_key: "你的火山引擎API_Key"    # 填入上面获取的 API Key
-    model: "你的Endpoint_ID"         # 填入上面获取的 Endpoint ID
+```bash
+git clone https://github.com/coze-dev/coze-studio
+```
 
 -----
 
-## 第四步：启动服务
+## Step 3: Start Services
 
-一切就绪，开始部署！
+Everything is ready, let's start the deployment!
 
-# 1. 进入 docker 目录
+1. Enter the docker directory
 
+<!-- end list -->
+
+```bash
 cd ~/coze-studio/docker
+```
 
-# 2. 复制环境变量文件
+2. Copy the environment variable file
 
+<!-- end list -->
+
+```bash
 cp .env.example .env
+```
 
-# 3. 启动服务 (使用 docker compose)
+3. Start services (using docker compose)
 
+<!-- end list -->
+
+```bash
 sudo docker compose -f docker-compose.yml up -d
+```
 
-此时你会看到终端显示正在 `Pulling`（下载）各种镜像，请耐心等待下载完成。
+At this point, you will see the terminal displaying `Pulling` (downloading) various images. Please wait patiently for the download to complete.
+
+-----
+
+## Step 4: Register Account and Configure Model
+
+After all containers show `Started`, we will proceed with subsequent configuration through the browser:
+
+1. **Register Account**:
+   Open your browser and visit `http://localhost:8888/sign` (or `http://<RDK_IP_Address>:8888/sign`), enter your username and password, and click the register button.
+
+2. **Configure Model** (Connecting Doubao 1.6):
+   After logging in, visit `http://localhost:8888/admin/#model-management` (or navigate to the model management page through the interface) to add a new model.
+
+     * *Note: This feature requires Coze Studio image version greater than or equal to 0.5.0.*
+     * **Configuration Information Acquisition**:
+         * **API Key**: [Click here to create/view](https://www.volcengine.com/docs/82379/1541594)
+         * **Endpoint ID (Inference Access Point)**: [Click here to create](https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint/create?customModelId=) (After creating the access point, the characters displayed in the red box on the page are your Endpoint ID)
+
+3. **Start Using**:
+   After configuration is complete, visit the Coze Studio homepage `http://localhost:8888/` to start creating Agents! 🚀
 
 -----
 
-## 第五步：开始使用
+## Appendix: Common Issues and Core Troubleshooting (Troubleshooting)
 
-当所有容器都显示 `Started` 后：
+If you encounter issues such as containers failing to start, services failing to connect, or "Internal Server Error" during deployment, please refer to the following core solutions.
 
-1. 打开浏览器，访问 RDK 的 IP 地址或本地地址：`http://localhost:8888`
-2. 输入默认的邮箱和密码进行登录。
-3. 现在，你已经成功在地瓜 RDK 上部署了 Coze Studio！🚀
+### 1. Core Diagnostic Commands
 
------
+When encountering issues, please prioritize executing the following commands to check error details rather than blindly reinstalling.
+
+  * **Check Container Running Status**:
+
+    ```bash
+    cd ~/coze-studio/docker
+    sudo docker compose ps
+    ```
+
+    *In normal state, all services' Status should be `Up (healthy)` or `Up`. If there is `Exit` or `Unhealthy`, please continue to the next step.*
+
+  * **Check Key Service Logs (Core!!!)**:
+    Most errors (such as 500 errors, connection timeouts) are hidden in the logs.
+
+    ```bash
+    # Check backend service logs (resolve Internal Server Error)
+    sudo docker logs --tail 100 coze-server
+
+    # Check vector database logs (resolve Milvus startup failure)
+    sudo docker logs --tail 100 coze-milvus
+    ```
+
+### 2. Network and Startup Errors (iptables/DNS)
+
+If the logs show `dial tcp ... connection refused`, `context deadline exceeded`, or `lookup ... failed`, it's usually a network forwarding issue with RDK.
+
+  * **Check 1: Whether Docker configuration disables iptables**
+    Ensure that `/etc/docker/daemon.json` must contain `"iptables": false`, because the RDK kernel may be missing certain firewall modules.
+
+    ```bash
+    sudo cat /etc/docker/daemon.json
+    # Must confirm it includes: "iptables": false
+    ```
+
+  * **Check 2: Enable IPv4 Forwarding**
+    If iptables is disabled, kernel forwarding must be manually enabled, otherwise containers cannot access the internet.
+
+    ```bash
+    # Temporary enable (takes effect immediately)
+    sudo sysctl -w net.ipv4.ip_forward=1
+
+    # Verify
+    cat /proc/sys/net/ipv4/ip_forward
+    # Output 1 is normal
+    ```
+
+### 3. Milvus Vector Database Stuck or Error on Startup
+
+Milvus is the most complex component, depending on Etcd and MinIO. If it reports `connect to etcd failed` or `check blob bucket exist failed`:
+
+  * **Cause**: Usually due to IP address changes of dependent services (MinIO/Etcd), or they start slower than Milvus.
+  * **Solution**:
+    No need to modify configuration files, simply restart the Milvus container to let it reacquire the IP of dependent services:
+    ```bash
+    cd ~/coze-studio/docker
+    sudo docker compose restart milvus
+    ```
+    Wait a few seconds, then check the logs again to confirm `Proxy successfully started` appears.
+
+### 4. Coze Studio Page Blank or 500 Error
+
+  * **Blank Page**: Usually browser cache or unopened port. Try force refresh (Ctrl+F5) or check if the RDK IP is correct.
+  * **500 Internal Server Error**:
+    1. Check if a model has been configured in the Web interface (see Step 4).
+    2. Check if the `coze-server` container is connected to Milvus (see "Check Key Service Logs" above).
+    3. Try restarting the backend service:
+        ```bash
+        sudo docker compose restart coze-server
+        ```
+
+### 5. Extreme Case: Reset All Environment
+
+If the environment is completely messed up (such as severe IP conflicts), you can execute the following commands to completely clear and rebuild (**Note: This will delete all created Agent data**):
+
+```bash
+cd ~/coze-studio/docker
+sudo docker compose down -v  # Delete containers and data volumes
+sudo systemctl restart docker # Restart Docker daemon
+sudo docker compose up -d    # Rebuild
+```
